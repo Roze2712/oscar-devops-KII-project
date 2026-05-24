@@ -1,0 +1,30 @@
+version: '3.8'
+services:
+  # 1. Твојата Next.js апликација
+  oscar-app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres-db:5432/oscar_db
+    depends_on:
+      - postgres-db
+
+  # 2. База на податоци (Postgres)
+  postgres-db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: oscar_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # 3. Redis (Третиот сервис - за да го исполниш условот)
+  redis-cache:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  pgdata:
