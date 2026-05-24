@@ -2,14 +2,18 @@ apiVersion: v1
 kind: Service
 metadata:
   name: oscar-app
+  namespace: oscar
   labels:
     app: oscar-app
 spec:
-  type: LoadBalancer
+  # ClusterIP because external traffic comes in through the Ingress.
+  # Change to LoadBalancer (cloud) or NodePort (bare-metal/minikube)
+  # if you don't have an Ingress controller installed.
+  type: ClusterIP
   selector:
     app: oscar-app
   ports:
     - name: http
       protocol: TCP
       port: 80
-      targetPort: 3000
+      targetPort: http

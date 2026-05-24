@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: oscar-app
+  namespace: oscar
+  labels:
+    app: oscar-app
+  annotations:
+    # Tune as needed; these are sensible defaults for Next.js.
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: oscar.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: oscar-app
+                port:
+                  number: 80
+  # Uncomment once you have a TLS certificate (e.g. via cert-manager).
+  # tls:
+  #   - hosts:
+  #       - oscar.example.com
+  #     secretName: oscar-app-tls

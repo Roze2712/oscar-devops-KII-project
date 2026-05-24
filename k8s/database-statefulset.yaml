@@ -1,0 +1,106 @@
+# Headless Service required by the StatefulSet for stable network IDs.
+# Pods are addressable as <pod>.<service>.<ns>.svc.cluster.local.
+apiVersion: v1
+kind: Service
+metadata:
+  name: oscar-postgres-headless
+  namespace: oscar
+  labels:
+    app: oscar-postgres
+spec:
+  clusterIP: None
+  selector:
+    app: oscar-postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+---
+# ClusterIP service the app uses to reach Postgres (load-balances across
+# replicas if you ever scale; for a single-primary Postgres there's just one).
+apiVersion: v1
+kind: Service
+metadata:
+  name: oscar-postgres
+  namespace: oscar
+  labels:
+    app: oscar-postgres
+spec:
+  type: ClusterIP
+  selector:
+    app: oscar-postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: oscar-postgres
+  namespace: oscar
+  labels:
+    app: oscar-postgres
+spec:
+  serviceName: oscar-postgres-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oscar-postgres
+  template:
+    metadata:
+      labels:
+        app: oscar-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_DB
+              value: oscar_db
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: oscar-app-secrets
+                  key: POSTGRES_PASSWORD
+            # Subdir keeps Postgres happy when the PVC mount point has
+            # a lost+found dir (common on ext4).
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres", "-d", "oscar_db"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres", "-d", "oscar_db"]
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi

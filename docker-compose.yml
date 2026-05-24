@@ -1,30 +1,64 @@
-version: '3.8'
 services:
-  # 1. Твојата Next.js апликација
+  # Next.js application
   oscar-app:
-    build: .
+    build:
+      context: .
+      # NEXT_PUBLIC_* values must be present at build time to be inlined
+      # into the client bundle; pass them as build args, not just env.
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-https://dummy.supabase.co}
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-dummy_key}
+    image: oscar-app:local
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://postgres:password@postgres-db:5432/oscar_db
+      NODE_ENV: production
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-https://dummy.supabase.co}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-dummy_key}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      # The Next.js app currently uses Supabase for data, but DATABASE_URL
+      # is wired up so a future migration to the local Postgres works.
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-password}@postgres-db:5432/oscar_db
     depends_on:
-      - postgres-db
+      postgres-db:
+        condition: service_healthy
+      redis-cache:
+        condition: service_started
+    networks:
+      - oscar-net
+    restart: unless-stopped
 
-  # 2. База на податоци (Postgres)
+  # PostgreSQL database
   postgres-db:
-    image: postgres:15
+    image: postgres:15-alpine
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
       POSTGRES_DB: oscar_db
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d oscar_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - oscar-net
+    restart: unless-stopped
 
-  # 3. Redis (Третиот сервис - за да го исполниш условот)
+  # Redis cache (third service)
   redis-cache:
-    image: redis:alpine
+    image: redis:7-alpine
     ports:
       - "6379:6379"
+    networks:
+      - oscar-net
+    restart: unless-stopped
+
+networks:
+  oscar-net:
+    driver: bridge
 
 volumes:
   pgdata:

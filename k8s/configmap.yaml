@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oscar-app-config
+  namespace: oscar
+  labels:
+    app: oscar-app
+data:
+  # Non-sensitive runtime configuration. NEXT_PUBLIC_* values are also
+  # baked into the client bundle at image-build time (CI build-args);
+  # keeping them here too lets server-side code read them at runtime.
+  NEXT_PUBLIC_SUPABASE_URL: "https://your-project.supabase.co"
+  ADMIN_EMAILS: ""
+  NODE_ENV: "production"

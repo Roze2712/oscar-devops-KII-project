@@ -2,10 +2,16 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: oscar-app
+  namespace: oscar
   labels:
     app: oscar-app
 spec:
   replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: oscar-app
@@ -19,4 +25,41 @@ spec:
           image: roze2712/oscar-app:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 3000
+            - name: http
+              containerPort: 3000
+          # Pull all non-secret env vars from the ConfigMap and all
+          # sensitive ones from the Secret. New keys added to either
+          # become available without touching the Deployment.
+          envFrom:
+            - configMapRef:
+                name: oscar-app-config
+            - secretRef:
+                name: oscar-app-secrets
+          env:
+            # DATABASE_URL is assembled from the Postgres service DNS
+            # name + the password mounted from the Secret.
+            - name: DATABASE_URL
+              value: postgresql://postgres:$(POSTGRES_PASSWORD)@oscar-postgres:5432/oscar_db
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
