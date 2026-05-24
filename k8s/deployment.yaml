@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oscar-app
+  labels:
+    app: oscar-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: oscar-app
+  template:
+    metadata:
+      labels:
+        app: oscar-app
+    spec:
+      containers:
+        - name: oscar-app
+          image: roze2712/oscar-app:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
