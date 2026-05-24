@@ -26,3 +26,6 @@ jobs:
           context: .
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/oscar-app:latest
+          build-args: |
+            NEXT_PUBLIC_SUPABASE_URL=dummy_url
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy_key
