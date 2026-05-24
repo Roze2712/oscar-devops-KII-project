@@ -10,8 +10,6 @@ const ORDER_NOTIFICATION_INBOX = "rrozinsopkova@gmail.com";
 const STANDARD_DELIVERY_NOTICE_MK =
   "Испораката се врши низ цела Македонија во рок од 2 до 5 работни дена.";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 type CartLine = {
   lineId?: string;
   id?: number;
@@ -178,6 +176,10 @@ export async function POST(request: Request) {
         { status: 500 },
       );
     }
+
+    // Instantiated per-request (not at module load) so `next build`
+    // can collect this route's page data without a real API key.
+    const resend = new Resend(process.env.RESEND_API_KEY);
 
     const body = (await request.json()) as {
       firstName?: string;
