@@ -25,7 +25,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/oscar-app:latest
+          tags: rrozinsopkova/oscar-app:latest
           build-args: |
             NEXT_PUBLIC_SUPABASE_URL=https://dummy.supabase.co
             NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=dummy_key
